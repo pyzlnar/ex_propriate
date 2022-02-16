@@ -1,12 +1,12 @@
 defmodule ExPropriate do
   defmacro __using__(opts \\ []) do
-    expropriate_all = Keyword.get(opts, :expropriate_all, false)
+    expropriate_all = Keyword.get(opts, :expropriate_all, nil)
 
-    quote do
-      import Kernel, except: [defp: 1, defp: 2]
-      import ExPropriate, only: [defp: 1, defp: 2]
-
-      @expropriate_all unquote(expropriate_all)
+    if expropriate_all do
+      quote do
+        import Kernel, except: [defp: 1, defp: 2]
+        import ExPropriate, only: [defp: 1, defp: 2]
+      end
     end
   end
 
@@ -14,21 +14,13 @@ defmodule ExPropriate do
 
   defmacro defp(call, do: body) do
     quote do
-      if @expropriate_all do
-        def unquote(call), do: unquote(body)
-      else
-        Kernel.defp unquote(call), do: unquote(body)
-      end
+      def unquote(call), do: unquote(body)
     end
   end
 
   defmacro defp(call, nil) do
     quote do
-      if @expropriate_all do
-        def unquote(call)
-      else
-        Kernel.defp unquote(call)
-      end
+      def unquote(call)
     end
   end
 end
