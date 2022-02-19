@@ -102,7 +102,7 @@ defmodule MyModule do
   defp expropriated_function,
     do: :am_expropriated
 
-  # Funcitions with multiple bodies only need to be tagged on the first body
+  # Functions with multiple bodies only need to be tagged on the first body
   @expropriate true
   defp divide_by(number) when is_integer(number) and number > 0,
     do: {:ok, div(100, number)}

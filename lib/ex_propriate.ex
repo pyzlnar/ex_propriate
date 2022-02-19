@@ -1,4 +1,8 @@
 defmodule ExPropriate do
+  @moduledoc """
+  This module provides the only open interface to use the library.
+  """
+
   alias ExPropriate.{MarkedFunctions, FullModule}
 
   defmacro __using__(opts \\ []) do

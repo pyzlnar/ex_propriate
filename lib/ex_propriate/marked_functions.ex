@@ -1,4 +1,63 @@
 defmodule ExPropriate.MarkedFunctions do
+  @moduledoc """
+  This module handles expropiation of function-level granularity.
+
+  It can be setup like this:
+
+  ```elixir
+  defmodule MyModule do
+    use ExPropriate
+
+    # Function becomes public
+    @expropriate true
+    defp expropriated_function,
+      do: :am_expropriated
+
+    # Functions with multiple bodies only need to be tagged on the first body
+    @expropriate true
+    defp divide_by(number) when is_integer(number) and number > 0,
+      do: {:ok, div(100, number)}
+
+    defp divide_by(_other),
+      do: :error
+
+    # Untagged functions remain private
+    @expropriate false
+    defp remains_private,
+      do: :am_private
+  end
+
+  MyModule.expropriated_function
+  # :am_expropriated
+
+  MyModule.divide_by(2)
+  # { :ok, 50 }
+
+  MyModule.divide_by(0)
+  # :error
+
+  MyModule.remains_private
+  # (UndefinedFunctionError) function MyModule.remains_private/0 is undefined or private.
+  ```
+
+  The objective of this module was to be able to explicitly state which functions need to be
+  expropriated. The tradeoff is that this module is more "_intrusive_" than the module-level
+  granularity, since it overrides both `Kernel.def/2` and `Kernel.defp/2`.
+
+  Also a friendly reminder that the functions and macros contained in this module are for internal
+  use of the library and it's advised _against_ using them directly.
+  """
+
+  @typedoc """
+  Tuple containing a function's name an arity.
+  """
+  @type fn_name :: {name :: atom, arity :: non_neg_integer}
+
+  @doc """
+  Generates ast to inject this module's `def/2` and `defp/2` macro instead of
+  `Kernel.def/2` and `Kernel.defp/2`.
+  """
+  @spec generate_use_ast(keyword) :: Macro.t
   def generate_use_ast(_opts) do
     quote do
       import Kernel, except: [def: 1, def: 2, defp: 1, defp: 2]
@@ -9,6 +68,12 @@ defmodule ExPropriate.MarkedFunctions do
     end
   end
 
+  @doc """
+  Generates ast to prevent warnings on unused `@expropriate` attributes.
+
+  These warnings would happen when the module include the `@expropriate` attributes, but ExPropriate
+  is disabled at a config level. Eg: in prod.
+  """
   def generate_unused_ast do
     quote do
       @before_compile unquote(__MODULE__)
@@ -21,6 +86,14 @@ defmodule ExPropriate.MarkedFunctions do
     end
   end
 
+  @doc """
+  An override of `Kernel.def/2`.
+
+  This macro checks if the `@expropriate` attribute was set to `true` before defining a public
+  function, and outputs a warning if that's the case.
+
+  Regardless of the warning, it _always_ defines the fuction using `Kernel.def/2`
+  """
   defmacro def(fn_head, fn_body \\ nil) do
     quote do
       if @expropriate do
@@ -31,6 +104,16 @@ defmodule ExPropriate.MarkedFunctions do
     end
   end
 
+  @doc """
+  An override of `Kernel.defp/2`.
+
+  This macro decides whether or not the expropriate the function body based on the following
+  criteria:
+
+  * The `@expropriate` attribute is set to `true`
+  * The function's name (`{name, arity}`) was already expropriated. (For functions with multiple
+    bodies)
+  """
   defmacro defp(fn_head, fn_body \\ nil) do
     fn_name = fn_head_to_name(fn_head)
     quote do
@@ -45,6 +128,32 @@ defmodule ExPropriate.MarkedFunctions do
     end
   end
 
+  @doc """
+  Transforms a function's head AST into a tuple containing the name and arity of the function.
+
+  **Examples**:
+
+  ```elixir
+  iex> quote do
+  ...>   zero_arity()
+  ...> end
+  ...> |> fn_head_to_name()
+  {:zero_arity, 0}
+
+  iex> quote do
+  ...>   with_two_arguments(arg1, arg2)
+  ...> end
+  ...> |> fn_head_to_name()
+  {:with_two_arguments, 2}
+
+  iex> quote do
+  ...>   with_guards(arg) when is_atom(arg)
+  ...> end
+  ...> |> fn_head_to_name()
+  {:with_guards, 1}
+  ```
+  """
+  @spec fn_head_to_name(Macro.t) :: fn_name
   def fn_head_to_name({:when, _, [fn_head|_checks]}) do
     fn_head_to_name(fn_head)
   end
