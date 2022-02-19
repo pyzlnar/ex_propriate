@@ -6,6 +6,7 @@ defmodule ExPropriate.MixProject do
       app: :ex_propriate,
       version: "0.1.0",
       elixir: "~> 1.13",
+      elixirc_paths:   elixirc_paths(Mix.env),
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -17,6 +18,10 @@ defmodule ExPropriate.MixProject do
       extra_applications: [:logger]
     ]
   end
+
+  # Load extra paths when on test
+  defp elixirc_paths(:test),   do: ~W[lib test/support]
+  defp elixirc_paths(_normal), do: ~W[lib]
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do

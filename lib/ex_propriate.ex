@@ -1,26 +1,23 @@
 defmodule ExPropriate do
+  alias ExPropriate.{MarkedFunctions, FullModule}
+
   defmacro __using__(opts \\ []) do
-    expropriate_all = Keyword.get(opts, :expropriate_all, nil)
+    from_config = Application.get_env(:ex_propriate, :enable, false)
+    from_module = Keyword.get(opts, :expropriate_all, nil)
 
-    if expropriate_all do
-      quote do
-        import Kernel, except: [defp: 1, defp: 2]
-        import ExPropriate, only: [defp: 1, defp: 2]
-      end
-    end
-  end
-
-  defmacro defp(call, expr \\ nil)
-
-  defmacro defp(call, do: body) do
-    quote do
-      def unquote(call), do: unquote(body)
-    end
-  end
-
-  defmacro defp(call, nil) do
-    quote do
-      def unquote(call)
+    case {from_config, from_module} do
+      # Expropriate full module
+      {true, true} ->
+        FullModule.generate_use_ast(opts)
+      # Expropriate marked functions
+      {true, nil} ->
+        MarkedFunctions.generate_use_ast(opts)
+      # Cleans up attributes to not raise any warnings with the unused @expropriate attrs.
+      {false, nil} ->
+        MarkedFunctions.generate_unused_ast
+      # Don't do anything~
+      _ ->
+        nil
     end
   end
 end
