@@ -1,5 +1,7 @@
 # ExPropriate
 
+[![build_status](https://github.com/pyzlnar/ex_propriate/actions/workflows/elixir.yml/badge.svg?branch=master)](https://github.com/pyzlnar/ex_propriate/actions/workflows/elixir.yml?query=branch%3Amaster)
+
 ExPropriate is an Elixir library that allows you to decide whether or not a function is public at
 compile time.
 
