@@ -1,6 +1,6 @@
 defmodule ExPropriate.FullModule do
   @moduledoc """
-  This module handles expropiation of module-level granularity.
+  This module handles expropriation of module-level granularity.
 
   It can be set up like this:
 
@@ -18,7 +18,7 @@ defmodule ExPropriate.FullModule do
   # :has_been_expropriated
   ```
 
-  It is important to note, that this module has been design to be less "_intrusive_" than the
+  It is important to note that this module has been designed to be less "_intrusive_" than the
   function-level granularity. The reason behind this decision is so that it can serve as a fallback
   in case there are issues with the function-level.
 
@@ -29,8 +29,8 @@ defmodule ExPropriate.FullModule do
   @doc """
   Generates the ast necessary to inject this module's `defp/2` macro instead of `Kernel.defp/2`.
   """
-  @spec generate_use_ast(keyword) :: Macro.t
-  def generate_use_ast(_opts) do
+  @spec generate_use_ast() :: Macro.t
+  def generate_use_ast do
     quote do
       import Kernel, except: [defp: 1, defp: 2]
       import unquote(__MODULE__), only: [defp: 1, defp: 2]
