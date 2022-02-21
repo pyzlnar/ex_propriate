@@ -1,6 +1,8 @@
 # ExPropriate
 
-[![build_status](https://github.com/pyzlnar/ex_propriate/actions/workflows/elixir.yml/badge.svg?branch=master)](https://github.com/pyzlnar/ex_propriate/actions/workflows/elixir.yml?query=branch%3Amaster)
+[![Hex.pm: version](https://img.shields.io/hexpm/v/ex_propriate.svg?style=flat-square)](https://hex.pm/packages/ex_propriate)
+[![GitHub: CI](https://github.com/pyzlnar/ex_propriate/actions/workflows/elixir.yml/badge.svg?branch=master)](https://github.com/pyzlnar/ex_propriate/actions/workflows/elixir.yml?query=branch%3Amaster)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ExPropriate is an Elixir library that allows you to decide whether or not a function is public at
 compile time.
@@ -13,24 +15,21 @@ There's an argument to be had that you should be testing your private functions 
 interfaces, and I agree! But it's also true that often times projects grow more complicated than
 you'd wish.
 
-The aim is to provide a way to be able to test your overly complicated private functions without
-compromising the design. So that you may eventually refactor as necesary.
+The aim of this library is to provide a way to be able to test your overly complicated private
+functions without making changes in the design.
 
-When push comes to shove, a questionably designed, but well tested function is better than a
+When push comes to shove, a questionably designed but well tested function is better than a
 questionably designed and vaguely tested one.
 
-## Installation
 
-| | |
-|----|----|
-| :warning: **WIP** |  At this time the library is in a proof of concept state. More tests and documentation need to be added before I consider it in a publishable state, but feel free to pull from github and open issues if you find any. |
+## Installation
 
 In `mix.exs`, add the ExPropriate dependency:
 
 ```elixir
 def deps do
   [
-    {:ex_propriate, git: "https://github.com/pyzlnar/ex_propriate"}
+    {:ex_propriate, "~> 0.1"}
   ]
 end
 ```
@@ -93,6 +92,9 @@ function one, so if you're having issues with the later, you can try using this 
 
 **Function Level Granularity**:
 
+This level will only expropriate functions that are tagged with the `@expropriate` attribute set
+to `true`.
+
 ```elixir
 defmodule MyModule do
   use ExPropriate
@@ -120,7 +122,7 @@ MyModule.expropriated_function
 # :am_expropriated
 
 MyModule.divide_by(2)
-# {:ok, 50}
+# { :ok, 50 }
 MyModule.divide_by(0)
 # :error
 
@@ -146,30 +148,59 @@ graph TD
   function_is_tagged -- false --> function_remains_private[Tagged defp remains private]
 ```
 
-### Limitations
+## Limitations
 
-Some libraries may define their own versions of `def` and `defp`.
+Some libraries define their own versions of `def` and `defp`.
 
-It's advised **against** using ExPropriate in modules that implement such libraries, but if you do
-be wary about:
+It's advised **against** using ExPropriate in modules that implement such libraries. If you want to
+try regardless, please be aware that:
 
-- Any side-effect your library may have by making a function public
-- You're responsible for excluding the `[defp: 1, defp: 2]` functions from being imported from the
-  library. (Otherwise you'll get compilation errors due ambiguity)
-- Only **Module Granularity** (`expropariate_all`) is (_loosely_) supported.
+#### Only **Module Granularity** (`expropriate_all`) is (_loosely_) supported.
 
-Here's an example of how you may set it up:
+Function-level granularity explicitly defines functions with `Kernel.def/2` and `Kernel.defp/2`, so
+even if things seem to work at first, you are probably loosing the functionality that you're seeking
+from the other library.
+
+#### If the library only overrides `def/2`
+
+Libraries that override `Kernel.def/2` typically do so to enhance functionality. Since expropriating
+a function basically makes it public, be wary of any unwanted side-effect that may occur.
+
+Other than that, the setup should look something like this:
 
 ```elixir
-use OtherLibrary
-use ExPropriate, expropriate_all: true do
-  # The do block is only used if :expropriate_all is true
-  import OtherLibrary.Macros, except: [defp: 1, defp: 2]
+defmodule MyModule do
+  use OtherLibrary
+
+  use ExPropriate,
+    expropriate_all: true
 end
 ```
 
-## Docs
+#### If the library also overrides `defp/2`
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/ex_propriate>.
+Welp.
+
+You really shouldn't use `ExPropriate` in that module, but if you absolutely must... \
+You'll be trading off the functionality of that library's `defp/2` whenever you expropriate the
+functions. You'll also be responsible of preventing the import of said library's `defp/2`, otherwise
+you'll get compilation errors.
+
+The setup would look something like this:
+
+```elixir
+demfodule MyModule do
+  use OtherLibrary
+
+  if Application.compile_env(:ex_propriate, :enable) do
+    import OtherLibrary.Macros, except: [defp: 1, defp: 2]
+
+    use ExPropriate,
+      expropriate_all: true do
+  end
+end
+```
+
+## License
+
+ExPropriate is released under the [MIT License](https://opensource.org/licenses/MIT).

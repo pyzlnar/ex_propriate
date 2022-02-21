@@ -1,8 +1,8 @@
 defmodule ExPropriate.MarkedFunctions do
   @moduledoc """
-  This module handles expropiation of function-level granularity.
+  This module handles expropriation of function-level granularity.
 
-  It can be setup like this:
+  It can be set up like this:
 
   ```elixir
   defmodule MyModule do
@@ -22,7 +22,6 @@ defmodule ExPropriate.MarkedFunctions do
       do: :error
 
     # Untagged functions remain private
-    @expropriate false
     defp remains_private,
       do: :am_private
   end
@@ -49,31 +48,105 @@ defmodule ExPropriate.MarkedFunctions do
   """
 
   @typedoc """
-  Tuple containing a function's name an arity.
+  AST containing the definition of a function's body.
+
+  Typically it's a keyword list containing at least a `[do: expr]`. It also may be `nil` (if only
+  the function head is being declared), and it may also contain other keys like `:rescue`, `:catch`,
+  `:after`, etc.
+
+  ```elixir
+  [do: {:+, [], [1, 2]}]
+  |> Macro.to_string
+  # "[do: 1 + 2]"
+
+  [
+    do: {
+      :/,
+      [],
+      [{:a, [], nil}, {:b, [], Elixir}]
+    },
+    rescue: [{
+      :->,
+      [],
+      [
+        [{:error, [], nil}],
+        {{:., [], [{:__aliases__, [], [:IO]}, :puts]}, [],
+        [{:error, [], nil}]}
+      ]
+    }]
+  ]
+  |> Macro.to_string
+  # "[do: a / b, rescue: (error -> IO.puts(error))]"
+  ```
+  """
+
+  @type fn_body :: Macro.t | nil
+
+  @typedoc """
+  AST containing the definition of a function's head.
+
+  Contains at least the function name, arguments and clauses.
+  Does not contain `def` or `defp`.
+
+  **Examples**:
+
+  ```elixir
+  {:with_no_args, [], []}
+  |> Macro.to_string
+  # "with_no_args()"
+
+  {:with_two_args, [], [{:arg1, [], nil}, {:arg2, [], nil}}
+  |> Macro.to_string
+  # "with_two_args(arg1, arg2)"
+
+  {
+    :when,
+    [],
+    [
+      {:with_when, [], [{:arg, [], nil}]},
+      {:>, [], [{:arg,  [], nil}, 0]}
+    ]
+  }
+  |> Macro.to_string
+  # "with_when(arg) when arg > 1"
+  ```
+  """
+
+  @type fn_head :: Macro.t
+
+  @typedoc """
+  Tuple containing a function's name and arity.
+
+  ```elixir
+  {:my_function, 2}
+  ```
   """
   @type fn_name :: {name :: atom, arity :: non_neg_integer}
 
   @doc """
-  Generates ast to inject this module's `def/2` and `defp/2` macro instead of
-  `Kernel.def/2` and `Kernel.defp/2`.
+  Generates the AST necessary to expropriate only tagged functions on compile time.
+
+  - Injects this module's `def/2` and `defp/2` macro in favor of `Kernel.def/2` and `Kernel.defp/2`.
+  - Setups attributes that are later used by the `def/2` and `defp/2` macros.
   """
-  @spec generate_use_ast(keyword) :: Macro.t
-  def generate_use_ast(_opts) do
+  @spec generate_use_ast() :: Macro.t
+  def generate_use_ast do
     quote do
       import Kernel, except: [def: 1, def: 2, defp: 1, defp: 2]
       import unquote(__MODULE__), only: [def: 1, def: 2, defp: 1, defp: 2]
 
       @expropriate false
-      Module.register_attribute __MODULE__, :expropriated_names, accumulate: true
+      Module.register_attribute(__MODULE__, :expropriated_names, accumulate: true)
     end
   end
 
   @doc """
-  Generates ast to prevent warnings on unused `@expropriate` attributes.
+  Generates AST to prevent warnings for unused `@expropriate` attributes.
 
-  These warnings would happen when the module include the `@expropriate` attributes, but ExPropriate
-  is disabled at a config level. Eg: in prod.
+  These warnings happened when the module has `@expropriate` attributes, but ExPropriate is disabled
+  at a config level. Eg: in `prod` environment.
   """
+  @spec generate_unused_ast() :: Macro.t
   def generate_unused_ast do
     quote do
       @before_compile unquote(__MODULE__)
@@ -82,7 +155,7 @@ defmodule ExPropriate.MarkedFunctions do
 
   defmacro __before_compile__(_env) do
     quote do
-      Module.delete_attribute __MODULE__, :expropriate
+      Module.delete_attribute(__MODULE__, :expropriate)
     end
   end
 
@@ -111,87 +184,88 @@ defmodule ExPropriate.MarkedFunctions do
   criteria:
 
   * The `@expropriate` attribute is set to `true`
-  * The function's name (`{name, arity}`) was already expropriated. (For functions with multiple
+  * The function's name (`t:fn_name/0`) was already expropriated. (For functions with multiple
     bodies)
   """
   defmacro defp(fn_head, fn_body \\ nil) do
-    fn_name = fn_head_to_name(fn_head)
-    quote do
-      cond do
-        @expropriate ->
-          unquote(__MODULE__.define_first_public_body(fn_name, fn_head, fn_body))
-        unquote(fn_name) in @expropriated_names ->
-          unquote(__MODULE__.define_public(fn_head, fn_body))
-        true ->
-          unquote(__MODULE__.define_private(fn_head, fn_body))
-      end
+    case fn_head_to_name(fn_head) do
+      {:ok, fn_name} ->
+        quote do
+          cond do
+            @expropriate ->
+              unquote(define_first_public_body(fn_name, fn_head, fn_body))
+            unquote(fn_name) in @expropriated_names ->
+              unquote(define_public(fn_head, fn_body))
+            true ->
+              unquote(define_private(fn_head, fn_body))
+          end
+        end
+      _ ->
+        message = "ExPropriate: There was an error expropriating the function: #{Macro.to_string(fn_head)}"
+        quote do
+          IO.warn(unquote(message), Macro.Env.stacktrace(__ENV__))
+          unquote(define_private(fn_head, fn_body))
+        end
     end
   end
 
   @doc """
   Transforms a function's head AST into a tuple containing the name and arity of the function.
-
-  **Examples**:
-
-  ```elixir
-  iex> quote do
-  ...>   zero_arity()
-  ...> end
-  ...> |> fn_head_to_name()
-  {:zero_arity, 0}
-
-  iex> quote do
-  ...>   with_two_arguments(arg1, arg2)
-  ...> end
-  ...> |> fn_head_to_name()
-  {:with_two_arguments, 2}
-
-  iex> quote do
-  ...>   with_guards(arg) when is_atom(arg)
-  ...> end
-  ...> |> fn_head_to_name()
-  {:with_guards, 1}
-  ```
   """
-  @spec fn_head_to_name(Macro.t) :: fn_name
+  @spec fn_head_to_name(fn_head) :: {:ok, fn_name} | :error
   def fn_head_to_name({:when, _, [fn_head|_checks]}) do
     fn_head_to_name(fn_head)
   end
 
   def fn_head_to_name({name, _, nil}) when is_atom(name) do
-    {name, 0}
+    {:ok, {name, 0}}
   end
 
   def fn_head_to_name({name, _, args}) when is_atom(name) and is_list(args) do
-    {name, Enum.count(args)}
+    {:ok, {name, Enum.count(args)}}
   end
 
+  def fn_head_to_name(_other) do
+    :error
+  end
+
+  @doc """
+  Defines a public function via `Kernel.def/2`, and sets the necessary attributes for the following
+  bodies.
+
+  Called by expropriated functions when they define their first body. In addition to defining the
+  function as public, this function also sets the `@expropriate` attribute back to `false` and
+  registers the function's name to the `@expropriated_names` attribute.
+
+  If the function has multiple bodies, it will directly call `define_public/2` instead.
+  """
+  @spec define_first_public_body(fn_name, fn_head, fn_body) :: Macro.t
   def define_first_public_body(fn_name, fn_head, fn_body) do
     quote do
       @expropriate false
       @expropriated_names unquote(fn_name)
-      unquote(__MODULE__.define_public(fn_head, fn_body))
+      unquote(define_public(fn_head, fn_body))
     end
   end
 
-  def define_public(fn_head, nil) do
-    quote do
-      Kernel.def unquote(fn_head)
-    end
-  end
+  @doc """
+  Defines a public function via `Kernel.def/2`
 
+  Called by functions that are being expropriated.
+  """
+  @spec define_public(fn_head, fn_body) :: Macro.t
   def define_public(fn_head, fn_body) do
     quote do
       Kernel.def unquote(fn_head), unquote(fn_body)
     end
   end
 
-  def define_private(fn_head, nil) do
-    quote do
-      Kernel.defp unquote(fn_head)
-    end
-  end
+  @doc """
+  Defines a private function via `Kernel.defp/2`
 
+  Called by functions that are **not** being expropriated.
+  """
+  @spec define_private(fn_head, fn_body) :: Macro.t
   def define_private(fn_head, fn_body) do
     quote do
       Kernel.defp unquote(fn_head), unquote(fn_body)

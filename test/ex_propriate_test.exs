@@ -1,7 +1,13 @@
 defmodule ExPropriateTest do
   use ExUnit.Case, async: true
 
-  alias ExPropriate.Test.{ExpropriateAll, ExpropriateNone, MarkedFunctions}
+  alias ExPropriate.Test.{
+    DisabledExpropriateAll,
+    DisabledMarkedFunctions,
+    ExpropriateAll,
+    ExpropriateNone,
+    MarkedFunctions
+  }
 
   describe "w/config enabled: true and expropriate_all: true" do
     test "doesn't affect public functions" do
@@ -34,8 +40,10 @@ defmodule ExPropriateTest do
       assert ExpropriateAll.with_function_head(:eat)                  == "eat nothing"
     end
 
-    test "with do and rescue" do
-      assert %RuntimeError{} = ExpropriateAll.with_do_and_rescue
+    test "with more than just do" do
+      assert %RuntimeError{} = ExpropriateAll.with_more_than_just_do(:raise)
+      assert ExpropriateAll.with_more_than_just_do(:throw) == :home_run!
+      assert ExpropriateAll.with_more_than_just_do(:else)  == :big_zam
     end
   end
 
@@ -143,13 +151,159 @@ defmodule ExPropriateTest do
       assert MarkedFunctions.with_function_head(:eat)                  == "eat nothing"
     end
 
-    test "with do and rescue" do
-      assert %RuntimeError{} = MarkedFunctions.with_do_and_rescue
+    test "with more than just do" do
+      assert %RuntimeError{} = MarkedFunctions.with_more_than_just_do(:raise)
+      assert MarkedFunctions.with_more_than_just_do(:throw) == :home_run!
+      assert MarkedFunctions.with_more_than_just_do(:else)  == :big_zam
     end
 
     test "unexpropriaated functions" do
       assert_raise UndefinedFunctionError,
         fn -> MarkedFunctions.private_function_in_between end
+    end
+  end
+
+  describe "w/config enabled: false and expropriate_all: true" do
+    test "doesn't affect public functions" do
+      assert DisabledExpropriateAll.public_function == :am_public
+    end
+
+    test "with zero arity functions" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_zero_arity end
+
+      assert DisabledExpropriateAll.public_with_zero_arity == :zero_arity
+    end
+
+    test "with arity more than zero" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_one_arg(:my_value) end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_one_arg("my_value") end
+
+      assert DisabledExpropriateAll.public_with_one_arg(:my_value)  == :my_value
+      assert DisabledExpropriateAll.public_with_one_arg("my_value") == "my_value"
+    end
+
+    test "with multiple_bodies" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_multiple_bodies(:one) end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_multiple_bodies(:two) end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_multiple_bodies(:three) end
+
+      assert DisabledExpropriateAll.public_with_multiple_bodies(:one)   == :body_one
+      assert DisabledExpropriateAll.public_with_multiple_bodies(:two)   == :body_two
+      assert DisabledExpropriateAll.public_with_multiple_bodies(:three) == :three
+    end
+
+    test "with guards" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_guards(3) end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_guards(0) end
+
+      assert DisabledExpropriateAll.public_with_guards(3) == 27
+      assert DisabledExpropriateAll.public_with_guards(0) == 0
+    end
+
+    test "with function head" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_function_head(:taste, what: "tacos") end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_function_head(:eat, what: "tacos") end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_function_head(:eat) end
+
+      assert DisabledExpropriateAll.public_with_function_head(:taste, what: "tacos") == "taste the rainbow"
+      assert DisabledExpropriateAll.public_with_function_head(:eat,   what: "tacos") == "eat tacos"
+      assert DisabledExpropriateAll.public_with_function_head(:eat)                  == "eat nothing"
+    end
+
+    test "with do and rescue" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledExpropriateAll.with_do_and_rescue end
+
+      assert %RuntimeError{} = DisabledExpropriateAll.public_with_do_and_rescue
+    end
+  end
+
+  describe "w/config enabled: false and marked functions" do
+    test "doesn't affect public functions" do
+      assert DisabledMarkedFunctions.public_function == :am_public
+    end
+
+    test "with zero arity functions" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_zero_arity end
+
+      assert DisabledMarkedFunctions.public_with_zero_arity == :zero_arity
+    end
+
+    test "with arity more than zero" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_one_arg(:my_value) end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_one_arg("my_value") end
+
+      assert DisabledMarkedFunctions.public_with_one_arg(:my_value)  == :my_value
+      assert DisabledMarkedFunctions.public_with_one_arg("my_value") == "my_value"
+    end
+
+    test "with multiple_bodies" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_multiple_bodies(:one) end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_multiple_bodies(:two) end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_multiple_bodies(:three) end
+
+      assert DisabledMarkedFunctions.public_with_multiple_bodies(:one)   == :body_one
+      assert DisabledMarkedFunctions.public_with_multiple_bodies(:two)   == :body_two
+      assert DisabledMarkedFunctions.public_with_multiple_bodies(:three) == :three
+    end
+
+    test "with guards" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_guards(3) end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_guards(0) end
+
+      assert DisabledMarkedFunctions.public_with_guards(3) == 27
+      assert DisabledMarkedFunctions.public_with_guards(0) == 0
+    end
+
+    test "with function head" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_function_head(:taste, what: "tacos") end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_function_head(:eat, what: "tacos") end
+
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_function_head(:eat) end
+
+      assert DisabledMarkedFunctions.public_with_function_head(:taste, what: "tacos") == "taste the rainbow"
+      assert DisabledMarkedFunctions.public_with_function_head(:eat,   what: "tacos") == "eat tacos"
+      assert DisabledMarkedFunctions.public_with_function_head(:eat)                  == "eat nothing"
+    end
+
+    test "with do and rescue" do
+      assert_raise UndefinedFunctionError,
+        fn -> DisabledMarkedFunctions.with_do_and_rescue end
+
+      assert %RuntimeError{} = DisabledMarkedFunctions.public_with_do_and_rescue
     end
   end
 end
