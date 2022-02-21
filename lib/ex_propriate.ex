@@ -39,6 +39,9 @@ defmodule ExPropriate do
     from_config = Application.get_env(:ex_propriate, :enable, false)
     from_module = Keyword.get(opts, :expropriate_all, nil)
 
+    # This setting is just for internal unit test purposes.
+    from_config = Keyword.get(opts, :override_config_with) || from_config
+
     case {from_config, from_module} do
       # Expropriate full module
       {true, true} ->

@@ -4,11 +4,9 @@ defmodule ExPropriate.Test.ExpropriateNone do
   All the private functions in this module should remain public.
   """
 
-  import ExPropriate.Test.OverrideConfig
-  override_config_with(true)
-
   use ExPropriate,
-    expropriate_all: false
+    expropriate_all: false,
+    override_config_with: true
 
   # -- Public Interface -- #
 
@@ -49,7 +47,7 @@ defmodule ExPropriate.Test.ExpropriateNone do
   defp with_multiple_bodies(other), do: other
 
   defp with_guards(arg) when is_integer(arg) and arg > 0 do
-    arg ** arg
+    arg * arg
   end
 
   defp with_guards(arg) do

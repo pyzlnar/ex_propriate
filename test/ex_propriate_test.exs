@@ -30,7 +30,7 @@ defmodule ExPropriateTest do
     end
 
     test "with guards" do
-      assert ExpropriateAll.with_guards(3) == 27
+      assert ExpropriateAll.with_guards(3) == 9
       assert ExpropriateAll.with_guards(0) == 0
     end
 
@@ -92,7 +92,7 @@ defmodule ExPropriateTest do
       assert_raise UndefinedFunctionError,
         fn -> ExpropriateNone.with_guards(0) end
 
-      assert ExpropriateNone.public_with_guards(3) == 27
+      assert ExpropriateNone.public_with_guards(3) == 9
       assert ExpropriateNone.public_with_guards(0) == 0
     end
 
@@ -141,7 +141,7 @@ defmodule ExPropriateTest do
     end
 
     test "with guards" do
-      assert MarkedFunctions.with_guards(3) == 27
+      assert MarkedFunctions.with_guards(3) == 9
       assert MarkedFunctions.with_guards(0) == 0
     end
 
@@ -208,7 +208,7 @@ defmodule ExPropriateTest do
       assert_raise UndefinedFunctionError,
         fn -> DisabledExpropriateAll.with_guards(0) end
 
-      assert DisabledExpropriateAll.public_with_guards(3) == 27
+      assert DisabledExpropriateAll.public_with_guards(3) == 9
       assert DisabledExpropriateAll.public_with_guards(0) == 0
     end
 
@@ -280,7 +280,7 @@ defmodule ExPropriateTest do
       assert_raise UndefinedFunctionError,
         fn -> DisabledMarkedFunctions.with_guards(0) end
 
-      assert DisabledMarkedFunctions.public_with_guards(3) == 27
+      assert DisabledMarkedFunctions.public_with_guards(3) == 9
       assert DisabledMarkedFunctions.public_with_guards(0) == 0
     end
 
