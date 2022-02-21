@@ -1,7 +1,7 @@
 # ExPropriate
 
 [![Hex.pm: version](https://img.shields.io/hexpm/v/ex_propriate.svg?style=flat-square)](https://hex.pm/packages/ex_propriate)
-[![GitHub: CI](https://github.com/pyzlnar/ex_propriate/actions/workflows/elixir.yml/badge.svg?branch=master)](https://github.com/pyzlnar/ex_propriate/actions/workflows/elixir.yml?query=branch%3Amaster)
+[![GitHub: CI](https://github.com/pyzlnar/ex_propriate/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/pyzlnar/ex_propriate/actions/workflows/ci.yml?query=branch%3Amaster)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ExPropriate is an Elixir library that allows you to decide whether or not a function is public at
