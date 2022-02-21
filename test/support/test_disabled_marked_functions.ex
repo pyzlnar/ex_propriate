@@ -4,10 +4,8 @@ defmodule ExPropriate.Test.DisabledMarkedFunctions do
   None of the private functions in this module should be public.
   """
 
-  import ExPropriate.Test.OverrideConfig
-  override_config_with(false)
-
-  use ExPropriate
+  use ExPropriate,
+    override_config_with: false
 
   # -- Public Interface -- #
 
@@ -52,7 +50,7 @@ defmodule ExPropriate.Test.DisabledMarkedFunctions do
 
   @expropriate true
   defp with_guards(arg) when is_integer(arg) and arg > 0 do
-    arg ** arg
+    arg * arg
   end
 
   defp with_guards(arg) do

@@ -4,11 +4,9 @@ defmodule ExPropriate.Test.ExpropriateAll do
   All the private functions in this module should be public.
   """
 
-  import ExPropriate.Test.OverrideConfig
-  override_config_with(true)
-
   use ExPropriate,
-    expropriate_all: true
+    expropriate_all: true,
+    override_config_with: true
 
   def public_function,
     do: :am_public
@@ -24,7 +22,7 @@ defmodule ExPropriate.Test.ExpropriateAll do
   defp with_multiple_bodies(other), do: other
 
   defp with_guards(arg) when is_integer(arg) and arg > 0 do
-    arg ** arg
+    arg * arg
   end
 
   defp with_guards(arg) do

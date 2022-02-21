@@ -5,7 +5,7 @@ defmodule ExPropriate.MixProject do
     [
       app: :ex_propriate,
       version: "0.1.0",
-      elixir: "~> 1.13",
+      elixir: "~> 1.9",
       elixirc_paths:   elixirc_paths(Mix.env),
       start_permanent: Mix.env() == :prod,
       deps: deps(),

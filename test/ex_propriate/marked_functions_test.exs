@@ -50,9 +50,9 @@ defmodule ExPropriate.MarkedFunctionsTest do
         MarkedFunctions.define_first_public_body({:my_function, 2}, fn_head, fn_body)
         |> Macro.to_string
 
-      assert result =~ ~r/@expropriate false/
-      assert result =~ ~r/@expropriated_names {:my_function, 2}/
-      assert result =~ ~r/def my_function\(arg1, arg2\)/
+      assert result =~ ~r/@expropriate[( ]false\)?/
+      assert result =~ ~r/@expropriated_names[( ]{:my_function, 2}\)?/
+      assert result =~ ~r/def[( ]my_function\(arg1, arg2\)\)?/
       assert result =~ ~r/arg1 \+ arg2/
     end
   end
@@ -69,7 +69,7 @@ defmodule ExPropriate.MarkedFunctionsTest do
         MarkedFunctions.define_public(fn_head, fn_body)
         |> Macro.to_string
 
-      assert result =~ ~r/def my_function\(arg1, arg2\)/
+      assert result =~ ~r/def[( ]my_function\(arg1, arg2\)\)?/
       assert result =~ ~r/arg1 \+ arg2/
     end
   end
@@ -86,7 +86,7 @@ defmodule ExPropriate.MarkedFunctionsTest do
         MarkedFunctions.define_private(fn_head, fn_body)
         |> Macro.to_string
 
-      assert result =~ ~r/defp my_function\(arg1, arg2\)/
+      assert result =~ ~r/defp[( ]my_function\(arg1, arg2\)\)?/
       assert result =~ ~r/arg1 \+ arg2/
     end
   end
