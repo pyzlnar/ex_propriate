@@ -1,16 +1,41 @@
-defmodule ExPropriate.Test.MarkedFunctions do
+defmodule ExPropriate.Test.DisabledMarkedFunctions do
   @moduledoc """
-  This module tests expropriating marked functions only.
-  Only marked functions in here should be public.
+  This module tests the expropriate_all: true option, with the config disabled.
+  None of the private functions in this module should be public.
   """
 
   import ExPropriate.Test.OverrideConfig
-  override_config_with(true)
+  override_config_with(false)
 
   use ExPropriate
 
+  # -- Public Interface -- #
+
   def public_function,
     do: :am_public
+
+  def public_with_zero_arity,
+    do: with_zero_arity()
+
+  def public_with_one_arg(arg),
+    do: with_one_arg(arg)
+
+  def public_with_multiple_bodies(arg),
+    do: with_multiple_bodies(arg)
+
+  def public_with_guards(arg),
+    do: with_guards(arg)
+
+  def public_with_function_head(:taste),
+    do: with_function_head()
+
+  def public_with_function_head(arg1, arg2 \\ []),
+    do: with_function_head(arg1, arg2)
+
+  def public_with_do_and_rescue,
+    do: with_do_and_rescue()
+
+  # -- Private -- #
 
   @expropriate true
   defp with_zero_arity,
@@ -19,9 +44,6 @@ defmodule ExPropriate.Test.MarkedFunctions do
   @expropriate true
   defp with_one_arg(arg1),
     do: arg1
-
-  def public_function_in_between,
-    do: private_function_in_between()
 
   @expropriate true
   defp with_multiple_bodies(:one),  do: :body_one
@@ -36,9 +58,6 @@ defmodule ExPropriate.Test.MarkedFunctions do
   defp with_guards(arg) do
     arg
   end
-
-  defp private_function_in_between,
-    do: :am_private
 
   @expropriate true
   defp with_function_head(verb \\ :taste, opts \\ [])
